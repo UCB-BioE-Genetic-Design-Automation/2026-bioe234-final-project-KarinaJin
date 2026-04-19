@@ -1,0 +1,26 @@
+[
+  {
+    "prompt": "Should I use Cas9 or Cas12a for editing pBR322?",
+    "expected_tool": "crispr_cas_selector",
+    "expected_args": { "seq": "pBR322" },
+    "notes": "Resource name input — framework resolves pBR322.gb automatically."
+  },
+  {
+    "prompt": "What CRISPR nuclease is best for a genome with sequence ATATATATAT?",
+    "expected_tool": "crispr_cas_selector",
+    "expected_args": { "seq": "ATATATATAT" },
+    "notes": "Raw AT-rich sequence should recommend Cas12a."
+  },
+  {
+    "prompt": "Analyze GC content of GCGCGCGCGC and recommend a Cas enzyme.",
+    "expected_tool": "crispr_cas_selector",
+    "expected_args": { "seq": "GCGCGCGCGC" },
+    "notes": "Raw GC-rich sequence should recommend Cas9."
+  },
+  {
+    "prompt": "Which Cas protein should I use for an organism with this sequence: ATGCATGCATGC?",
+    "expected_tool": "crispr_cas_selector",
+    "expected_args": { "seq": "ATGCATGCATGC" },
+    "notes": "50% GC sequence — ties default to Cas9."
+  }
+]

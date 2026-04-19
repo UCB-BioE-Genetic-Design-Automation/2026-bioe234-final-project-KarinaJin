@@ -1,0 +1,50 @@
+{
+  "id": "org.bioe234.function.crispr.cas_selector.v1",
+  "name": "CRISPR Nuclease Selector",
+  "description": "Analyzes the GC and AT content of a DNA sequence and recommends Cas9 (for GC-rich genomes, NGG PAM) or Cas12a (for AT-rich genomes, TTTV PAM).",
+  "type": "function",
+  "keywords": ["CRISPR", "Cas9", "Cas12a", "GC content", "AT content", "PAM", "nuclease", "genome editing"],
+  "date_created": null,
+  "date_last_modified": null,
+
+  "inputs": [
+    {
+      "name": "seq",
+      "type": "string",
+      "description": "DNA sequence to analyze. Accepts a resource name (e.g. 'pBR322'), a raw sequence string, a FASTA-formatted string, or a GenBank-formatted string. The framework resolves the format automatically before passing a clean sequence to the function."
+    }
+  ],
+
+  "outputs": [
+    {
+      "type": "object",
+      "description": "A dictionary with gc_fraction (float), at_fraction (float), recommendation ('Cas9' or 'Cas12a'), and rationale (str explaining the choice)."
+    }
+  ],
+
+  "examples": [
+    {
+      "input":  { "seq": "GCGCGCGCGC" },
+      "output": { "result": {"gc_fraction": 1.0, "at_fraction": 0.0, "recommendation": "Cas9", "rationale": "GC content is 100.0%, so NGG PAM sites (used by Cas9) are relatively abundant — Cas9 is the preferred CRISPR nuclease."} }
+    },
+    {
+      "input":  { "seq": "ATATATATAT" },
+      "output": { "result": {"gc_fraction": 0.0, "at_fraction": 1.0, "recommendation": "Cas12a", "rationale": "AT content is 100.0%, so TTTV PAM sites (used by Cas12a) are relatively abundant — Cas12a is the preferred CRISPR nuclease."} }
+    },
+    {
+      "input":  { "seq": "ATGCATGC" },
+      "output": { "result": {"gc_fraction": 0.5, "at_fraction": 0.5, "recommendation": "Cas9", "rationale": "GC content is 50.0%, so NGG PAM sites (used by Cas9) are relatively abundant — Cas9 is the preferred CRISPR nuclease."} }
+    }
+  ],
+
+  "execution_details": {
+    "language": "Python",
+    "source": "modules/crispr_tools/tools/cas_selector.py",
+    "initialization": "initiate",
+    "execution": "run",
+    "disposal": null,
+
+    "mcp_name": "crispr_cas_selector",
+    "seq_params": ["seq"]
+  }
+}

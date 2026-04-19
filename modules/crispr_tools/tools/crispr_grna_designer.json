@@ -1,0 +1,69 @@
+{
+  "id": "org.bioe234.function.crispr.guide_designer.v1",
+  "name": "CRISPR Guide Designer",
+  "description": "Design a guide RNA for Cas9 or Cas12a by validating DNA, finding the PAM, extracting the protospacer, appending the scaffold, and converting DNA to RNA.",
+  "type": "function",
+  "keywords": [
+    "CRISPR",
+    "Cas9",
+    "Cas12a",
+    "gRNA",
+    "crRNA",
+    "PAM",
+    "protospacer",
+    "guide RNA"
+  ],
+  "date_created": null,
+  "date_last_modified": null,
+  "inputs": [
+    {
+      "name": "target",
+      "type": "string",
+      "description": "DNA target sequence to search."
+    },
+    {
+      "name": "nuclease",
+      "type": "string",
+      "description": "CRISPR nuclease to use. Supported values: Cas9 or Cas12a."
+    }
+  ],
+  "outputs": [
+    {
+      "type": "object",
+      "description": "Dictionary containing nuclease, PAM index, PAM sequence, protospacer, guide DNA, and guide RNA."
+    }
+  ],
+  "examples": [
+    {
+      "input": {
+        "target": "CCCTAGATGCCTGGCTCAGAAACCTGCCAGTTTGCTGGCACGTTTTTTTCTTTTGTCTTTAGTTCTCACGTTTGTCATACTTGACAACGCTTCTTTAACCAAATATAATTGTTC",
+        "nuclease": "Cas9"
+      },
+      "output": {
+        "result": {
+          "nuclease": "Cas9"
+        }
+      }
+    },
+    {
+      "input": {
+        "target": "AAATTTAGGCTTTACGTTTACGATCGATCGATCGATCGA",
+        "nuclease": "Cas12a"
+      },
+      "output": {
+        "result": {
+          "nuclease": "Cas12a"
+        }
+      }
+    }
+  ],
+  "execution_details": {
+    "language": "Python",
+    "source": "modules/crispr_tools/tools/crispr_guide_designer.py",
+    "initialization": "initiate",
+    "execution": "run",
+    "disposal": null,
+    "mcp_name": "crispr_guide_designer",
+    "seq_params": ["target"]
+  }
+}

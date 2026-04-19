@@ -1,0 +1,181 @@
+{
+  "id": "org.bioe134-234.function.crispr.create_construction_file.v1",
+  "name": "Create Construction File",
+  "description": "Generate a construction file for an E_coli cloning workflow. Before calling, gather all required fields for the selected assembly strategy. If any required field is missing, ask for all missing required fields in one message. If all required fields are present, call the tool immediately. Always treat the returned text field as the main human-readable output. construction_file_txt contains the same rendered construction file text for downstream use.",
+  "type": "function",
+  "seq_params": [
+    "backbone_sequence",
+    "insert_sequence"
+  ],
+  "keywords": [
+    "CRISPR",
+    "construction file",
+    "E_coli",
+    "GoldenGate",
+    "Gibson",
+    "DirectSynthesis",
+    "cloning",
+    "plasmid assembly",
+    "lab workflow"
+  ],
+  "date_created": null,
+  "date_last_modified": null,
+  "inputs": [
+    {
+      "name": "construct_name",
+      "type": "string",
+      "description": "Name of the final construct."
+    },
+    {
+      "name": "host_organism",
+      "type": "string",
+      "description": "Host organism for the workflow. Version 1 supports E_coli only."
+    },
+    {
+      "name": "assembly_strategy",
+      "type": "string",
+      "description": "Main assembly strategy. Supported values are GoldenGate, Gibson, and DirectSynthesis."
+    },
+    {
+      "name": "backbone_name",
+      "type": "string",
+      "description": "Name of the backbone plasmid."
+    },
+    {
+      "name": "backbone_sequence",
+      "type": "string",
+      "description": "DNA sequence of the backbone plasmid."
+    },
+    {
+      "name": "insert_name",
+      "type": "string",
+      "description": "Name of the insert or donor sequence."
+    },
+    {
+      "name": "insert_sequence",
+      "type": "string",
+      "description": "DNA sequence of the insert or donor."
+    },
+    {
+      "name": "insert_forward_primer_name",
+      "type": "string",
+      "description": "Name of the forward primer used to amplify the insert. Required for GoldenGate and Gibson."
+    },
+    {
+      "name": "insert_forward_primer_sequence",
+      "type": "string",
+      "description": "DNA sequence of the forward primer used to amplify the insert. Required for GoldenGate and Gibson."
+    },
+    {
+      "name": "insert_reverse_primer_name",
+      "type": "string",
+      "description": "Name of the reverse primer used to amplify the insert. Required for GoldenGate and Gibson."
+    },
+    {
+      "name": "insert_reverse_primer_sequence",
+      "type": "string",
+      "description": "DNA sequence of the reverse primer used to amplify the insert. Required for GoldenGate and Gibson."
+    },
+    {
+      "name": "vector_forward_primer_name",
+      "type": "string",
+      "description": "Name of the forward primer used to amplify the vector backbone. Required for GoldenGate and Gibson."
+    },
+    {
+      "name": "vector_forward_primer_sequence",
+      "type": "string",
+      "description": "DNA sequence of the forward primer used to amplify the vector backbone. Required for GoldenGate and Gibson."
+    },
+    {
+      "name": "vector_reverse_primer_name",
+      "type": "string",
+      "description": "Name of the reverse primer used to amplify the vector backbone. Required for GoldenGate and Gibson."
+    },
+    {
+      "name": "vector_reverse_primer_sequence",
+      "type": "string",
+      "description": "DNA sequence of the reverse primer used to amplify the vector backbone. Required for GoldenGate and Gibson."
+    },
+    {
+      "name": "enzyme",
+      "type": "string",
+      "description": "Assembly enzyme used for GoldenGate workflows, such as BsaI or BbsI."
+    },
+    {
+      "name": "cell_strain",
+      "type": "string",
+      "description": "Transformation strain, such as Mach1 or DH5alpha. Optional."
+    },
+    {
+      "name": "selection",
+      "type": "string",
+      "description": "Selection marker or antibiotic, such as Kan or Amp. Optional."
+    },
+    {
+      "name": "temperature_c",
+      "type": "integer",
+      "description": "Transformation temperature in degrees Celsius. Defaults to 37."
+    },
+    {
+      "name": "notes",
+      "type": "string",
+      "description": "Optional notes about the construction workflow."
+    }
+  ],
+  "outputs": [
+    {
+      "type": "object",
+      "description": "A validated construction result containing text, construction_file_txt, construct_name, assembly_strategy, file_name, and structured_construction_file."
+    }
+  ],
+  "examples": [
+    {
+      "input": {
+        "construct_name": "pET28a_REP24",
+        "host_organism": "E_coli",
+        "assembly_strategy": "GoldenGate",
+        "backbone_name": "pET28a",
+        "backbone_sequence": "AGATCT",
+        "insert_name": "REP24",
+        "insert_sequence": "ATGAAA",
+        "insert_forward_primer_name": "repF",
+        "insert_forward_primer_sequence": "CCATAGGTCTCAATGAAAAATGTTTTAATGGTTACTA",
+        "insert_reverse_primer_name": "repR",
+        "insert_reverse_primer_sequence": "CAGATGGTCTCACGAGATTAAATAAAGATTGTTTAAT",
+        "vector_forward_primer_name": "vecF",
+        "vector_forward_primer_sequence": "CCATAGGTCTCACTCGAGCACCACCACCACCACCACT",
+        "vector_reverse_primer_name": "vecR",
+        "vector_reverse_primer_sequence": "CAGATGGTCTCATCATGGTATATCTCCTTCTTAAAGT",
+        "enzyme": "BsaI",
+        "cell_strain": "Mach1",
+        "selection": "Kan",
+        "temperature_c": 37,
+        "notes": "Example E_coli Golden Gate construction workflow."
+      },
+      "output": {
+        "result": {
+          "construct_name": "pET28a_REP24",
+          "assembly_strategy": "GoldenGate",
+          "file_name": "pET28a_REP24_construction.txt",
+          "text": "PCR           repF          repR          REP24             REP24_pcr\nPCR           vecF          vecR          pET28a            pET28a_pcr\nGoldenGate    pET28a_pcr    REP24_pcr     BsaI              pET28a_REP24\nTransform     pET28a_REP24  Mach1         Kan       37      pET28a_REP24_e",
+          "construction_file_txt": "PCR           repF          repR          REP24             REP24_pcr\nPCR           vecF          vecR          pET28a            pET28a_pcr\nGoldenGate    pET28a_pcr    REP24_pcr     BsaI              pET28a_REP24\nTransform     pET28a_REP24  Mach1         Kan       37      pET28a_REP24_e",
+          "structured_construction_file": {
+            "construct_name": "pET28a_REP24",
+            "assembly_strategy": "GoldenGate",
+            "parts": [],
+            "operations": [],
+            "notes": "Example E_coli Golden Gate construction workflow."
+          }
+        }
+      }
+    }
+  ],
+  "execution_details": {
+    "language": "Python",
+    "source": "2026-bioe234-final-project/modules/crispr_tools/tools/create_construction_file.py",
+    "initialization": "initiate",
+    "execution": "run",
+    "disposal": null,
+    "mcp_name": "create_construction_file"
+  }
+}
