@@ -1,0 +1,77 @@
+{
+  "id": "org.bioe234.function.sequence.gene_sequence_lookup_tool.v1",
+  "name": "Gene Sequence Lookup Tool",
+  "description": "Retrieve nucleotide sequence candidates for a gene symbol or NCBI Gene ID, optionally filtered by organism.",
+  "type": "function",
+  "keywords": [
+    "gene",
+    "sequence",
+    "DNA",
+    "nucleotide",
+    "NCBI",
+    "fasta",
+    "organism"
+  ],
+  "date_created": null,
+  "date_last_modified": null,
+  "inputs": [
+    {
+      "name": "gene_symbol",
+      "type": "string",
+      "optional": true,
+      "description": "Gene symbol, such as YAP1."
+    },
+    {
+      "name": "gene_id",
+      "type": "string",
+      "optional": true,
+      "description": "NCBI Gene ID, such as 855005."
+    },
+    {
+      "name": "organism",
+      "type": "string",
+      "optional": true,
+      "description": "Organism name, such as Saccharomyces cerevisiae."
+    },
+    {
+      "name": "max_nucleotide_records",
+      "type": "integer",
+      "optional": true,
+      "description": "Maximum number of linked nucleotide records to return. Default: 3."
+    },
+    {
+      "name": "include_fasta",
+      "type": "boolean",
+      "optional": true,
+      "description": "Whether to fetch FASTA sequence text. Default: true."
+    }
+  ],
+  "outputs": [
+    {
+      "type": "object",
+      "description": "Resolved gene metadata plus linked nucleotide records and optional FASTA."
+    }
+  ],
+  "examples": [
+    {
+      "input": {
+        "gene_symbol": "YAP1",
+        "organism": "Saccharomyces cerevisiae"
+      },
+      "output": {
+        "result": {
+          "resolved_symbol": "YAP1"
+        }
+      }
+    }
+  ],
+  "execution_details": {
+    "language": "Python",
+    "source": "modules/sequence_tools/tools/gene_sequence_lookup_tool.py",
+    "initialization": "initiate",
+    "execution": "run",
+    "disposal": null,
+    "mcp_name": "gene_sequence_lookup_tool",
+    "seq_params": []
+  }
+}

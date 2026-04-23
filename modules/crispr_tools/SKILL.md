@@ -30,6 +30,13 @@ as the sequence argument — do not ask the user to paste the sequence.
 When a user refers to "pET28a", use the resource name `"pET28a"` directly
 as the sequence argument — do not ask the user to paste the sequence.
 
+| Resource name | Description |
+|---------------|-------------|
+| `pUC19`      | E. coli cloning vector pUC19, 2686 bp, circular, double-stranded. Widely used circular DNA cloning plasmid designed for easy insertion and propagation of foreign DNA in bacteria. It contains key features like a multiple cloning site (polylinker) within the lac operon for insertion of DNA fragments and sequences derived from pBR322 for replication and maintenance in host cells. |
+
+When a user refers to "pUC19", use the resource name `"pUC19"` directly
+as the sequence argument — do not ask the user to paste the sequence.
+
 ---
 
 ## Tools and when to use them
@@ -68,12 +75,12 @@ Use when the user asks to:
 Before calling this tool, gather all required fields for the selected assembly strategy.
 
 For all workflows:
-- construct_name
-- host_organism
-- backbone_name
-- backbone_sequence
-- insert_name
-- insert_sequence
+
+* construct_name
+* backbone_name
+* backbone_sequence
+* insert_name
+* insert_sequence
 
 For GoldenGate:
 - insert_forward_primer_name
@@ -230,6 +237,99 @@ Important behavior:
   wrong coordinates, or the sequence is not a coding region.
 - When translating a full plasmid, most of the output will be non-coding — only specific
   coordinate ranges will give meaningful protein sequence.
+
+---
+
+### `crispr_predict_offtargets`
+Scans a reference DNA sequence for potential CRISPR off-target sites — places the guide RNA might accidentally bind and cause Cas9 to cut somewhere unintended.
+
+Use when the user asks:
+- "does this guide have off-target sites?"
+- "is this gRNA specific enough?"
+- "check for off-targets in [reference]"
+- "how many mismatches are there between my guide and [sequence]?"
+
+**Inputs:**
+- `protospacer`: the 20 bp DNA protospacer from gRNA design (no PAM). Standard A/T/G/C only.
+- `reference`: the DNA sequence to scan. Accepts resource name (e.g. `"pBR322"`), raw string, FASTA, or GenBank.
+- `max_mismatches` (optional): max mismatches to still flag a site. Default 3.
+
+**What it returns:**
+A ranked list of off-target sites, each with position, strand, mismatch count, seed-region mismatches, PAM presence, and a risk level (HIGH / MEDIUM / LOW). Also includes a one-sentence specificity summary.
+
+**Risk logic (Hsu et al. 2013):**
+- HIGH: 0 mismatches, or no seed-region mismatches + PAM present
+- MEDIUM: ≤1 seed mismatch + PAM, or ≤2 total mismatches + PAM
+- LOW: everything else
+
+The seed region is positions 1–12 from the PAM end — mismatches there are more dangerous because that is where Cas9 first contacts DNA.
+
+---
+
+### `crispr_verify_edit`
+After a CRISPR experiment, calculates the expected Cas9 cut site and designs flanking sequencing primers for ICE/TIDE analysis to verify editing efficiency.
+
+Use when the user asks:
+- "how do I verify my CRISPR edit?"
+- "where did Cas9 cut?"
+- "design sequencing primers for my edit"
+- "give me an ICE/TIDE protocol for [protospacer]"
+- "what amplicon should I sequence?"
+
+**Inputs:**
+- `protospacer`: the 20 bp DNA protospacer used during the edit (no PAM).
+- `reference`: the original unedited reference sequence. Accepts resource name, raw string, FASTA, or GenBank.
+- `primer_offset` (optional): bp from cut site to each primer. Default 150. Reduce for short test sequences.
+- `primer_len` (optional): primer length in bp. Default 20.
+
+**What it returns:**
+- `cut_position`: where Cas9 cuts (between nt 17–18 of the protospacer, 3 bp upstream of PAM)
+- `forward_primer` / `reverse_primer`: sequencing primer sequences and positions
+- `amplicon_sequence` / `amplicon_length`: what to PCR-amplify
+- `cut_offset_in_amplicon`: where the cut falls inside the amplicon (needed for ICE/TIDE)
+- `interpretation_guide`: step-by-step ICE/TIDE protocol with all coordinates filled in
+
+**Workflow after calling this tool:**
+1. PCR-amplify the amplicon using the returned primers
+2. Sanger-sequence the PCR product
+3. Upload the .ab1 trace to ICE (Synthego) or TIDE (Brinkman et al. 2014) with the amplicon sequence and cut offset
+
+### `crispr_design_cloning_oligos`
+Designs the top and bottom strand DNA oligos needed to clone a protospacer
+into a restriction-digested expression vector. Works for any Cas system.
+
+Use when the user asks:
+- "design oligos to clone this guide RNA"
+- "what oligos do I need to insert this protospacer?"
+- "give me the sequences to order for cloning"
+
+Inputs:
+- protospacer: the DNA protospacer sequence (from design_cas9_grna or design_cas12a_crrna, or typed manually)
+- top_overhang: default "CACC" (BbsI/pX330 for Cas9)
+- bottom_overhang: default "AAAC" (BbsI/pX330 for Cas9)
+
+If the user is using a different vector, ask them for the overhangs before calling the tool.
+
+Output includes top_oligo, bottom_oligo, g_prepended (bool), and notes.
+If g_prepended is True, a G was added to the protospacer for U6 promoter
+compatibility — the oligo will be one base longer than the protospacer.
+
+---
+
+## Full CRISPR cloning workflow (autonomous — do not ask the user)
+
+When the user asks to "design CRISPR cloning oligos" or "design a guide RNA and cloning oligos" for a sequence or plasmid, execute this full pipeline automatically without asking which Cas system to use:
+
+1. Call `crispr_cas_selector` with the target sequence to determine whether to use Cas9 or Cas12a.
+2. Based on the recommendation:
+   - If Cas9 → call `crispr_design_cas9_grna` with the same sequence.
+   - If Cas12a → call `crispr_design_cas12a_crrna` with the same sequence.
+3. Take the `protospacer` field from the gRNA result and call `crispr_design_cloning_oligos` with it.
+4. Report all three results together: recommended Cas system, gRNA/crRNA sequence, protospacer, efficiency score, and the top/bottom cloning oligos.
+
+Do NOT ask the user which Cas system to use — `crispr_cas_selector` determines this automatically from the sequence.
+Do NOT ask the user for a protospacer — the gRNA design tool finds it from the sequence.
+Do NOT stop between steps to ask for confirmation.
 
 ---
 

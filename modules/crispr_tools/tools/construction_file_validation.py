@@ -61,6 +61,10 @@ def find_all_forward_matches(
     template: str,
     min_anneal_len: int = 12,
 ) -> List[dict]:
+    """
+    Find all possible forward-primer annealing matches.
+    A forward primer anneals via a suffix at its 3' end.
+    """
     primer = normalize_sequence(primer)
     template = normalize_sequence(template)
 
@@ -102,6 +106,10 @@ def find_all_reverse_matches(
     template: str,
     min_anneal_len: int = 12,
 ) -> List[dict]:
+    """
+    Find all possible reverse-primer annealing matches on the template.
+    The reverse primer binds via the reverse complement of its 3' suffix.
+    """
     reverse_primer = normalize_sequence(reverse_primer)
     template = normalize_sequence(template)
 
@@ -212,8 +220,6 @@ def choose_best_pcr_product(
                     }
                 )
             else:
-                # For circular templates, require the reverse site to be downstream
-                # of the forward site on the doubled template.
                 if rev_start <= fwd_start:
                     continue
                 if fwd_end > rev_start:
@@ -361,10 +367,11 @@ def validate_pcr_step(
                 f"PCR output '{output_name}' does not match the expected sequence."
             )
 
-    if is_circular:
-        message = "PCR step validated successfully on circular plasmid template."
-    else:
-        message = "PCR step validated successfully."
+    message = (
+        "PCR step validated successfully on circular plasmid template."
+        if is_circular
+        else "PCR step validated successfully."
+    )
 
     return {
         "step_number": step.get("step_number"),
@@ -375,6 +382,140 @@ def validate_pcr_step(
         "expected_sequence_provided": expected_seq is not None,
         "matches_expected_sequence": matches_expected,
         "details": prediction,
+    }
+
+
+def get_supported_enzyme(enzyme: str) -> dict:
+    enzyme = enzyme.strip()
+    if enzyme == "BsaI":
+        return {
+            "name": "BsaI",
+            "recognition_site": "GGTCTC",
+            "overhang_length": 4,
+        }
+    raise ConstructionValidationError(f"Unsupported GoldenGate enzyme '{enzyme}' in version 1.")
+
+
+def find_terminal_bsaI_sites(seq: str, recognition_site: str = "GGTCTC") -> dict:
+    seq = normalize_sequence(seq)
+    rc_site = reverse_complement(recognition_site)
+
+    left_site = seq.find(recognition_site)
+    right_site = seq.rfind(rc_site)
+
+    if left_site == -1:
+        raise ConstructionValidationError("No forward BsaI site found in fragment.")
+    if right_site == -1:
+        raise ConstructionValidationError("No reverse BsaI site found in fragment.")
+
+    return {
+        "left_site_start": left_site,
+        "right_site_start": right_site,
+    }
+
+
+def extract_goldengate_overhangs(seq: str, enzyme: str) -> dict:
+    """
+    Version 1 simplification:
+    - find a forward BsaI site near one end
+    - find a reverse-oriented BsaI site near the other end
+    - take the 4 nt immediately after the forward site as the left overhang
+    - take the 4 nt immediately before the reverse-oriented site as the right overhang
+    """
+    seq = normalize_sequence(seq)
+    enzyme_info = get_supported_enzyme(enzyme)
+    site = enzyme_info["recognition_site"]
+    overhang_len = enzyme_info["overhang_length"]
+
+    sites = find_terminal_bsaI_sites(seq, recognition_site=site)
+
+    left_site_start = sites["left_site_start"]
+    right_site_start = sites["right_site_start"]
+
+    # BsaI primer designs here use:
+    # clamp + GGTCTC + spacer base + 4 bp overhang + annealing sequence
+    #
+    # So skip the one spacer base after the forward recognition site.
+    left_overhang_start = left_site_start + len(site) + 1
+    left_overhang = seq[left_overhang_start:left_overhang_start + overhang_len]
+
+    # On the reverse-oriented side, skip the one spacer base before the reverse site.
+    right_overhang_end = right_site_start - 1
+    right_overhang = seq[right_overhang_end - overhang_len:right_overhang_end]
+
+    if len(left_overhang) != overhang_len or len(right_overhang) != overhang_len:
+        raise ConstructionValidationError("Could not extract full GoldenGate overhangs from fragment.")
+
+    return {
+        "left_overhang": left_overhang,
+        "right_overhang": right_overhang,
+        "enzyme": enzyme,
+    }
+
+
+def validate_goldengate_step(
+    step: dict,
+    produced_sequences: Dict[str, str],
+) -> Dict[str, object]:
+    if step.get("step_type") != "GoldenGate":
+        raise ConstructionValidationError("validate_goldengate_step only accepts GoldenGate steps.")
+
+    inputs = step.get("inputs", [])
+    params = step.get("parameters", {})
+    output_name = step.get("output", "").strip()
+
+    if len(inputs) < 2:
+        raise ConstructionValidationError("GoldenGate step requires at least 2 inputs.")
+
+    enzyme = params.get("enzyme", "").strip()
+    if not enzyme:
+        raise ConstructionValidationError("GoldenGate step is missing enzyme.")
+
+    vector_name = inputs[0]
+    insert_name = inputs[1]
+
+    if vector_name not in produced_sequences:
+        raise ConstructionValidationError(
+            f"GoldenGate input '{vector_name}' has no available validated sequence."
+        )
+    if insert_name not in produced_sequences:
+        raise ConstructionValidationError(
+            f"GoldenGate input '{insert_name}' has no available validated sequence."
+        )
+
+    vector_seq = produced_sequences[vector_name]
+    insert_seq = produced_sequences[insert_name]
+
+    vector_ends = extract_goldengate_overhangs(vector_seq, enzyme)
+    insert_ends = extract_goldengate_overhangs(insert_seq, enzyme)
+
+    # The extracted overhangs are already in junction-facing form.
+    # Compare them directly instead of reverse-complementing again.
+    junction_1_ok = vector_ends["right_overhang"] == insert_ends["left_overhang"]
+    junction_2_ok = insert_ends["right_overhang"] == vector_ends["left_overhang"]
+
+    if not junction_1_ok or not junction_2_ok:
+        raise ConstructionValidationError(
+            "GoldenGate overhangs are not compatible for circular assembly. "
+            f"Vector right={vector_ends['right_overhang']}, "
+            f"Insert left={insert_ends['left_overhang']}, "
+            f"Insert right={insert_ends['right_overhang']}, "
+            f"Vector left={vector_ends['left_overhang']}."
+        )
+
+    return {
+        "step_number": step.get("step_number"),
+        "step_type": "GoldenGate",
+        "output_name": output_name,
+        "is_valid": True,
+        "message": "GoldenGate step validated successfully.",
+        "details": {
+            "enzyme": enzyme,
+            "vector_left_overhang": vector_ends["left_overhang"],
+            "vector_right_overhang": vector_ends["right_overhang"],
+            "insert_left_overhang": insert_ends["left_overhang"],
+            "insert_right_overhang": insert_ends["right_overhang"],
+        },
     }
 
 
@@ -395,6 +536,7 @@ def validate_construction_record(
         )
 
     part_lookup = build_part_lookup(parts)
+    produced_sequences: Dict[str, str] = {}
 
     report = {
         "construct_name": structured_construction_file.get("construct_name"),
@@ -408,47 +550,55 @@ def validate_construction_record(
     for step in operations:
         step_type = step.get("step_type")
 
-        if step_type == "PCR":
-            try:
+        try:
+            if step_type == "PCR":
                 step_result = validate_pcr_step(
                     step=step,
                     part_lookup=part_lookup,
                     expected_sequences=expected_sequences,
                     min_anneal_len=min_anneal_len,
                 )
+                produced_sequences[step_result["output_name"]] = step_result["details"]["predicted_sequence"]
                 report["step_results"].append(step_result)
 
-            except ConstructionValidationError as e:
+            elif step_type == "GoldenGate":
+                step_result = validate_goldengate_step(
+                    step=step,
+                    produced_sequences=produced_sequences,
+                )
+                report["step_results"].append(step_result)
+
+            else:
                 report["step_results"].append(
                     {
                         "step_number": step.get("step_number"),
-                        "step_type": "PCR",
+                        "step_type": step_type,
                         "output_name": step.get("output"),
-                        "is_valid": False,
-                        "message": str(e),
+                        "is_valid": None,
+                        "message": f"{step_type} biological validation is not implemented in version 1.",
                     }
                 )
-                report["errors"].append(
-                    f"PCR step {step.get('step_number')} failed: {e}"
+                report["warnings"].append(
+                    f"Step {step.get('step_number')} ({step_type}) was not biologically validated."
                 )
-                report["is_valid"] = False
 
-                if strict:
-                    raise
-
-        else:
+        except ConstructionValidationError as e:
             report["step_results"].append(
                 {
                     "step_number": step.get("step_number"),
                     "step_type": step_type,
                     "output_name": step.get("output"),
-                    "is_valid": None,
-                    "message": f"{step_type} biological validation is not implemented in version 1.",
+                    "is_valid": False,
+                    "message": str(e),
                 }
             )
-            report["warnings"].append(
-                f"Step {step.get('step_number')} ({step_type}) was not biologically validated."
+            report["errors"].append(
+                f"{step_type} step {step.get('step_number')} failed: {e}"
             )
+            report["is_valid"] = False
+
+            if strict:
+                raise
 
     return report
 
@@ -502,6 +652,13 @@ def format_validation_report(report: dict) -> str:
                 f"       Candidate primer pairings checked: {details.get('candidate_count', 1)}"
             )
 
+        if isinstance(details, dict) and step_type == "GoldenGate" and step_valid is True:
+            lines.append(f"       Enzyme: {details.get('enzyme')}")
+            lines.append(f"       Vector left overhang: {details.get('vector_left_overhang')}")
+            lines.append(f"       Vector right overhang: {details.get('vector_right_overhang')}")
+            lines.append(f"       Insert left overhang: {details.get('insert_left_overhang')}")
+            lines.append(f"       Insert right overhang: {details.get('insert_right_overhang')}")
+
         lines.append("")
 
     errors = report.get("errors", [])
@@ -534,7 +691,6 @@ class ValidateConstructionFile:
     def run(
         self,
         construct_name: str,
-        host_organism: str,
         assembly_strategy: str,
         backbone_name: str,
         backbone_sequence: str,
@@ -570,19 +726,14 @@ class ValidateConstructionFile:
         if not isinstance(strict, bool):
             raise ConstructionValidationError("strict must be a boolean.")
 
-        # Rebuild the same internal structure used by create_construction_file
-        host_organism = self.builder._normalize_host_organism(host_organism)
+        assembly_strategy = self.builder._normalize_assembly_strategy(assembly_strategy)
 
         self.builder._require_nonempty_string(construct_name, "construct_name")
-        self.builder._require_nonempty_string(host_organism, "host_organism")
         self.builder._require_nonempty_string(assembly_strategy, "assembly_strategy")
         self.builder._require_nonempty_string(backbone_name, "backbone_name")
         self.builder._require_nonempty_string(backbone_sequence, "backbone_sequence")
         self.builder._require_nonempty_string(insert_name, "insert_name")
         self.builder._require_nonempty_string(insert_sequence, "insert_sequence")
-
-        if host_organism not in self.builder.supported_organisms:
-            raise ConstructionValidationError("host_organism must be E_coli for version 1.")
 
         if assembly_strategy not in self.builder.allowed_strategies:
             raise ConstructionValidationError(
@@ -636,7 +787,6 @@ class ValidateConstructionFile:
 
         structured_construction_file = {
             "construct_name": construct_name,
-            "host_organism": host_organism,
             "assembly_strategy": assembly_strategy,
             "parts": validated_parts,
             "operations": validated_operations,

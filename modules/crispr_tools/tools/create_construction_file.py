@@ -7,7 +7,6 @@ class CreateConstructionFile:
 
     Input:
         construct_name (str): Name of the final construct.
-        host_organism (str): Host organism. Version 1 supports E_coli only.
         assembly_strategy (str): Main assembly strategy. Supported:
             GoldenGate, Gibson, DirectSynthesis.
         backbone_name (str): Name of the backbone plasmid.
@@ -44,7 +43,6 @@ class CreateConstructionFile:
     def run(
         self,
         construct_name: str,
-        host_organism: str,
         assembly_strategy: str,
         backbone_name: str,
         backbone_sequence: str,
@@ -66,18 +64,13 @@ class CreateConstructionFile:
     ) -> dict:
 
         self._require_nonempty_string(construct_name, "construct_name")
-        self._require_nonempty_string(host_organism, "host_organism")
         self._require_nonempty_string(assembly_strategy, "assembly_strategy")
         self._require_nonempty_string(backbone_name, "backbone_name")
         self._require_nonempty_string(backbone_sequence, "backbone_sequence")
         self._require_nonempty_string(insert_name, "insert_name")
         self._require_nonempty_string(insert_sequence, "insert_sequence")
 
-        host_organism = self._normalize_host_organism(host_organism)
         assembly_strategy = self._normalize_assembly_strategy(assembly_strategy)
-
-        if host_organism not in self.supported_organisms:
-            raise ValueError("host_organism must be E_coli for version 1.")
 
 # Fail early if seq_params did not resolve properly
         for field_name, seq_value in (
@@ -139,22 +132,6 @@ class CreateConstructionFile:
             temperature_c=temperature_c,
         )
 
-        # validated_operations = self._validate_operations(operations, validated_parts)
-        # construction_file_txt = self._render_construction_file(
-        #     validated_parts,
-        #     validated_operations
-        # )
-        # host_organism = self._normalize_host_organism(host_organism)
-
-        # # return {
-        # #     "construction_file_txt": construction_file_txt
-        # # }
-        # return {
-        #     "construct_name": construct_name,
-        #     "assembly_strategy": assembly_strategy,
-        #     "structured_construction_file": structured_construction_file,
-        #     "construction_file_txt": construction_file_txt,
-        # }
         validated_operations = self._validate_operations(operations, validated_parts)
         construction_file_txt = self._render_construction_file(
             validated_parts,
@@ -645,31 +622,20 @@ class CreateConstructionFile:
 
         return "\n".join(lines)
     
-    def _normalize_host_organism(self, host_organism: str) -> str:
-        normalized = host_organism.strip().lower().replace(".", "").replace(" ", "_")
-        if normalized in {"e_coli", "ecoli"}:
-            return "E_coli"
-        return host_organism.strip()
     
     def _normalize_assembly_strategy(self, strategy: str) -> str:
-        s = strategy.lower().replace(" ", "")
-        
-        if s == "goldengate":
-            return "GoldenGate"
-        elif s == "golden gate":
-            return "GoldenGate"
-        elif s == "Golden Gate":
-            return "GoldenGate"
-        elif s == "gibson":
-            return "Gibson"
-        elif s == "directsynthesis":
-            return "DirectSynthesis"
-        elif s == "Directsynthesis":
-            return "DirectSynthesis"
-        elif s == "directSynthesis":
-            return "DirectSynthesis"
-        else:
-            return strategy  # fallback → will trigger validation error
+        if not isinstance(strategy, str) or not strategy.strip():
+            raise ValueError("assembly_strategy must be a non-empty string.")
+
+        s = strategy.strip().lower().replace("_", "").replace(" ", "")
+
+        mapping = {
+            "goldengate": "GoldenGate",
+            "gibson": "Gibson",
+            "directsynthesis": "DirectSynthesis",
+        }
+
+        return mapping.get(s, strategy.strip())
 
 
 _instance = CreateConstructionFile()
@@ -706,7 +672,6 @@ def main() -> None:
     print("Leave optional fields blank if they are not needed.\n")
 
     construct_name = prompt_required("Construct name: ")
-    host_organism = prompt_required("Host organism (use E_coli): ")
     assembly_strategy = prompt_required(
         "Assembly strategy (GoldenGate, Gibson, DirectSynthesis): "
     )
@@ -750,7 +715,6 @@ def main() -> None:
     try:
         result = create_construction_file(
             construct_name=construct_name,
-            host_organism=host_organism,
             assembly_strategy=assembly_strategy,
             backbone_name=backbone_name,
             backbone_sequence=backbone_sequence,

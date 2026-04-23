@@ -1,0 +1,69 @@
+{
+  "id": "org.bioe234.function.annotation.go_term_gene_lookup.v1",
+  "name": "GO Term Gene Lookup",
+  "description": "Retrieve genes related to a GO term label, optionally filtered by organism.",
+  "type": "function",
+  "keywords": [
+    "gene ontology",
+    "GO",
+    "genes",
+    "annotation",
+    "ontology",
+    "organism"
+  ],
+  "date_created": null,
+  "date_last_modified": null,
+  "inputs": [
+    {
+      "name": "go_id",
+      "type": "string",
+      "description": "GO identifier, such as GO:0006979."
+    },
+    {
+      "name": "go_label",
+      "type": "string",
+      "description": "GO term label, such as 'response to oxidative stress'."
+    },
+    {
+      "name": "organism",
+      "type": "string",
+      "optional": true,
+      "description": "Organism name, such as 'Saccharomyces cerevisiae'."
+    },
+    {
+      "name": "max_genes",
+      "type": "integer",
+      "optional": true,
+      "description": "Maximum number of genes to return. Default: 10."
+    }
+  ],
+  "outputs": [
+    {
+      "type": "object",
+      "description": "Structured gene lookup result."
+    }
+  ],
+  "examples": [
+    {
+      "input": {
+        "go_id": "GO:0006979",
+        "go_label": "response to oxidative stress",
+        "organism": "Saccharomyces cerevisiae"
+      },
+      "output": {
+        "result": {
+          "go_id": "GO:0006979"
+        }
+      }
+    }
+  ],
+  "execution_details": {
+    "language": "Python",
+    "source": "modules/annotation_tools/tools/go_term_gene_lookup.py",
+    "initialization": "initiate",
+    "execution": "run",
+    "disposal": null,
+    "mcp_name": "go_term_gene_lookup",
+    "seq_params": []
+  }
+}

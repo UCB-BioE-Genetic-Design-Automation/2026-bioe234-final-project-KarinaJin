@@ -243,7 +243,7 @@ async def run_chat() -> None:
     load_dotenv()
 
     # 2026 Google's best model but limited to 20 calls/day (according to Gemini, not able to confirm)
-    model = "gemini-2.5-flash"
+    model = "gemini-3.1-flash-lite-preview"
 
     # can also use; smarter but 20 calls/day; use sparingly
     # model = "gemini-2.5-flash-preview"

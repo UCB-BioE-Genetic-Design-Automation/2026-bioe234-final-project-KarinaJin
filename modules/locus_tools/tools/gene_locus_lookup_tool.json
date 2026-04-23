@@ -1,0 +1,79 @@
+{
+  "id": "org.bioe234.function.locus.gene_locus_lookup_tool.v1",
+  "name": "Gene Locus Lookup Tool",
+  "description": "Resolve a gene symbol or NCBI Gene ID to genomic locus coordinates and optionally fetch the locus FASTA sequence.",
+  "type": "function",
+  "keywords": [
+    "gene",
+    "locus",
+    "coordinates",
+    "genomic",
+    "DNA",
+    "FASTA",
+    "NCBI"
+  ],
+  "date_created": null,
+  "date_last_modified": null,
+  "inputs": [
+    {
+      "name": "gene_symbol",
+      "type": "string",
+      "optional": true,
+      "description": "Gene symbol, such as YAP1."
+    },
+    {
+      "name": "gene_id",
+      "type": "string",
+      "optional": true,
+      "description": "NCBI Gene ID, such as 855005."
+    },
+    {
+      "name": "organism",
+      "type": "string",
+      "optional": true,
+      "description": "Organism name, such as Saccharomyces cerevisiae."
+    },
+    {
+      "name": "max_loci",
+      "type": "integer",
+      "optional": true,
+      "description": "Maximum number of genomic loci to return. Default: 3."
+    },
+    {
+      "name": "include_fasta",
+      "type": "boolean",
+      "optional": true,
+      "description": "Whether to fetch locus FASTA sequence. Default: true."
+    }
+  ],
+  "outputs": [
+    {
+      "type": "object",
+      "description": "Resolved gene metadata and genomic locus records."
+    }
+  ],
+  "examples": [
+    {
+      "input": {
+        "gene_symbol": "YAP1",
+        "organism": "Saccharomyces cerevisiae",
+        "max_loci": 1,
+        "include_fasta": false
+      },
+      "output": {
+        "result": {
+          "resolved_symbol": "YAP1"
+        }
+      }
+    }
+  ],
+  "execution_details": {
+    "language": "Python",
+    "source": "modules/locus_tools/tools/gene_locus_lookup_tool.py",
+    "initialization": "initiate",
+    "execution": "run",
+    "disposal": null,
+    "mcp_name": "gene_locus_lookup_tool",
+    "seq_params": []
+  }
+}

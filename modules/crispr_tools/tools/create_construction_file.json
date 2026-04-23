@@ -27,11 +27,6 @@
       "description": "Name of the final construct."
     },
     {
-      "name": "host_organism",
-      "type": "string",
-      "description": "Host organism for the workflow. Version 1 supports E_coli only."
-    },
-    {
       "name": "assembly_strategy",
       "type": "string",
       "description": "Main assembly strategy. Supported values are GoldenGate, Gibson, and DirectSynthesis."
@@ -132,7 +127,6 @@
     {
       "input": {
         "construct_name": "pET28a_REP24",
-        "host_organism": "E_coli",
         "assembly_strategy": "GoldenGate",
         "backbone_name": "pET28a",
         "backbone_sequence": "AGATCT",
